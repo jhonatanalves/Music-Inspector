@@ -5,6 +5,7 @@ import com.example.MusicInspector.model.GeneroMusical;
 import com.example.MusicInspector.model.Musica;
 import com.example.MusicInspector.model.TipoCantor;
 import com.example.MusicInspector.repository.CantorRepository;
+import com.example.MusicInspector.service.ConsultaChatGPT;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -28,9 +29,12 @@ public class Principal {
 
             var menu = """
                     \s
-                    1 - salvar um cantor
-                    2 - salvar musicas de um cantor
-                                     
+                    1- Salvar um cantor
+                    2- Salvar músicas de um cantor
+                    3- Listar músicas de um cantor
+                    4- Listar todas as musicas
+                    5- Pesquisar dados sobre um cantor
+                    \s
                     0 - Sair\s
                     \s""";
 
@@ -47,6 +51,15 @@ public class Principal {
                     break;
                 case 2:
                     salvarMusicas();
+                    break;
+                case 3:
+                    listarMusicasDeUmCantor();
+                    break;
+                case 4:
+                    listarMusicasDeTodosCantores();
+                    break;
+                case 5:
+                    pesquisarCantor();
                     break;
                 default:
                     System.out.println("Opção inválida");
@@ -86,9 +99,7 @@ public class Principal {
     }
 
     private List<Cantor> buscarCantores() {
-
         return cantorRepository.findAll();
-
     }
 
     private void salvarMusicas() {
@@ -98,64 +109,115 @@ public class Principal {
         cantores.forEach(System.out::println);
 
         System.out.println("Para qual cantor você deseja cadastrar uma música?");
-        var cantor = leitura.nextLine();
-        Optional<Cantor> cantorOptional = cantorRepository.buscarCantor(cantor);
-
+        var cantorNome = leitura.nextLine();
+        Optional<Cantor> cantorOptional = cantorRepository.buscarCantor(cantorNome);
 
         if (cantorOptional.isPresent()) {
+            Cantor cantor = cantorOptional.get();
             System.out.println("Cantor encontrado!");
-          //  serie.setEpisodios(episodios);
-          //  serieRepositorio.save(serie);
-        } else {
-            System.out.println("Cantor não encontrada!");
-        }
+            var musicas = new HashSet<Musica>();
 
+            var opcao = "y";
+            while (opcao.equalsIgnoreCase("y")) {
 
-        var musicas = new ArrayList<Musica>();
+                System.out.println("Qual o nome da música?");
+                var nome = leitura.nextLine();
 
-        // verificar se o artista existe no banco para salvar as musicas
-        //apos salvar uma musica, perguntar se quer salvar outra
+                System.out.println("Qual a duração  (formato MM:SS)?");
+                var duracao = leitura.nextLine();
+                Duration duracao_ = null;
 
-        var opcao = "y";
-        while (opcao.equalsIgnoreCase("y")) {
+                try {
+                    String[] partes = duracao.split(":");
+                    int minutos = Integer.parseInt(partes[0]);
+                    int segundos = Integer.parseInt(partes[1]);
 
-            System.out.println("Qual o nome da música?");
-            var nome = leitura.nextLine();
+                    duracao_ = Duration.ofMinutes(minutos).plusSeconds(segundos);
 
-            System.out.println("Qual a duração  (formato MM:SS)?");
-            var duracao = leitura.nextLine();
-            Duration duracao_ = null;
+                } catch (Exception e) {
+                    // lançar uma exceção adequada
+                    System.out.println("Formato de duração inválido. Use MM:SS.");
+                }
 
-            try {
-                String[] partes = duracao.split(":");
-                int minutos = Integer.parseInt(partes[0]);
-                int segundos = Integer.parseInt(partes[1]);
+                System.out.println("Qual o gênero?");
+                var genero = leitura.nextLine();
+                GeneroMusical genero_ = GeneroMusical.valueOf(genero.toUpperCase());
 
-                duracao_ = Duration.ofMinutes(minutos).plusSeconds(segundos);
+                //buscar essa info futuramente com o ChatGPT
+                System.out.println("Qual a letra?");
+                var letra = leitura.nextLine();
 
-            } catch (Exception e) {
-                // lançar uma exceção adequada
-                System.out.println("Formato de duração inválido. Use MM:SS.");
+                Musica musica = new Musica(nome, letra, duracao_, genero_);
+                //musica.setCantores();
+                System.out.println(musica);
+
+                musicas.add(musica);
+
+                System.out.printf("Deseja salvar uma nova música para %s? (y/n)%n", cantor.getNome());
+                opcao = leitura.nextLine();
             }
 
-            System.out.println("Qual o gênero?");
-            var genero = leitura.nextLine();
-            GeneroMusical genero_ = GeneroMusical.valueOf(genero.toUpperCase());
+            cantor.setMusicas(musicas);
+            cantorRepository.save(cantor);
 
-            //buscar essa info futuramente com o ChatGPT
-            System.out.println("Qual a letra?");
-            var letra = leitura.nextLine();
-
-            Musica musica = new Musica(nome,letra,duracao_,genero_);
-            System.out.println(musica);
-
-            musicas.add(musica);
-
-            System.out.println("Deseja salvar uma nova música? (y/n)");
-            opcao = leitura.nextLine();
-
+        } else {
+            System.out.println("Cantor(a) não encontrado(a)!");
         }
+    }
 
+    private void listarMusicasDeUmCantor() {
+        List<Cantor> cantores = buscarCantores();
+        System.out.println("Lista de cantores cadastrados: ");
+        cantores.forEach(System.out::println);
 
+        System.out.println("De qual cantor você deseja listar as músicas?");
+        var cantorNome = leitura.nextLine();
+        Optional<Cantor> cantorOptional = cantorRepository.buscarCantor(cantorNome);
+
+        if (cantorOptional.isPresent()) {
+            Cantor cantor = cantorOptional.get();
+            System.out.println("Cantor encontrado!");
+            var musicas = cantorRepository.buscarMusicasDeUmCantor(cantor.getNome());
+            musicas.forEach(System.out::println);
+        }
+    }
+
+    private void listarMusicasDeTodosCantores() {
+
+        Set<Musica> musicas = cantorRepository.buscarMusicasDeTodosCantores();
+        if (!musicas.isEmpty()) {
+            musicas.forEach(System.out::println);
+        }
+    }
+
+    private void pesquisarCantor() {
+
+        List<Cantor> cantores = buscarCantores();
+        System.out.println("Lista de cantores cadastrados: ");
+        cantores.forEach(System.out::println);
+
+        System.out.println("Para qual cantor você deseja pesquisar informações?");
+        var cantorNome = leitura.nextLine();
+        Optional<Cantor> cantorOptional = cantorRepository.buscarCantor(cantorNome);
+
+        if (cantorOptional.isPresent()) {
+
+            var opcao = "y";
+            while (opcao.equalsIgnoreCase("y")) {
+
+                System.out.printf("O que você gostaria de saber sobre o(a) cantor(a) %s%n", cantorNome);
+                var pergunta = leitura.nextLine();
+
+                var prompt = String.format("responda sucintamente a seguinte pergunta sobre o(a) cantor(a) '%s': '%s'",
+                        cantorNome, pergunta);
+
+                var resposta = ConsultaChatGPT.consultar(prompt);
+                System.out.println(resposta);
+
+                System.out.printf("Gostaria de fazer mais perguntas sobre o(a) cantor(a) %s%n? (y/n)", cantorNome);
+                opcao = leitura.nextLine();
+
+            }
+        }
     }
 }

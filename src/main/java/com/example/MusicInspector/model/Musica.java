@@ -2,8 +2,10 @@ package com.example.MusicInspector.model;
 
 import jakarta.persistence.*;
 
+import java.util.HashSet;
 import java.util.List;
 import java.time.Duration;
+import java.util.Set;
 
 @Entity
 @Table(name = "musicas")
@@ -18,11 +20,12 @@ public class Musica {
     Duration duracao;
     GeneroMusical genero;
 
-    @ManyToMany(mappedBy = "musicas", cascade = CascadeType.ALL,  fetch = FetchType.EAGER)
-    List<Cantor> cantores;
+    @ManyToMany(mappedBy = "musicas")
+    private Set<Cantor> cantores;
+
 
     public Musica() {
-
+        this.cantores = new HashSet<>();
     }
 
     public Musica(String nome, String letra, Duration duracao, GeneroMusical genero) {
@@ -30,6 +33,7 @@ public class Musica {
         this.letra = letra;
         this.duracao = duracao;
         this.genero = genero;
+        this.cantores = new HashSet<>();
     }
 
     public void setId(Long id) {
@@ -72,11 +76,11 @@ public class Musica {
         this.genero = genero;
     }
 
-    public List<Cantor> getCantores() {
+    public Set<Cantor> getCantores() {
         return cantores;
     }
 
-    public void setCantores(List<Cantor> cantores) {
+    public void setCantores(Set<Cantor> cantores) {
         this.cantores = cantores;
     }
 

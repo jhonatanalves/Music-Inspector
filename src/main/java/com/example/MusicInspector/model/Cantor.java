@@ -4,13 +4,13 @@ import jakarta.persistence.*;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 
 @Entity
 @Table(name = "cantores")
 public class Cantor {
 
-    //https://www.baeldung.com/hibernate-many-to-many
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -20,10 +20,13 @@ public class Cantor {
     Date dataNascimento;
     String nacionalidade;
 
-    //O atributo mappedBy na anotação @OneToMany em JPA deve especificar o nome do atributo na classe alvo (no lado "muitos" da relação)
-    //que mantém a referência para a classe proprietária (lado "um" da relação).
-    @ManyToMany(mappedBy = "cantores", cascade = CascadeType.ALL,  fetch = FetchType.EAGER)
-    List<Musica> musicas;
+    @ManyToMany(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    @JoinTable(
+            name = "cantor_musica",
+            joinColumns = @JoinColumn(name = "cantor_id"),
+            inverseJoinColumns = @JoinColumn(name = "musica_id")
+    )
+    private Set<Musica> musicas;
 
     @Enumerated(EnumType.STRING)
     TipoCantor tipoCantor;
@@ -38,6 +41,7 @@ public class Cantor {
         this.dataNascimento = dataNascimento;
         this.nacionalidade = nacionalidade;
         this.tipoCantor = tipo;
+        this.musicas = new HashSet<>();
     }
 
     public Long getId() {
@@ -88,13 +92,14 @@ public class Cantor {
         this.nacionalidade = nacionalidade;
     }
 
-    public List<Musica> getMusicas() {
+    public Set<Musica> getMusicas() {
         return musicas;
     }
 
-    public void setMusicas(List<Musica> musicas) {
+    public void setMusicas(Set<Musica> musicas) {
         this.musicas = musicas;
     }
+
 
     public String dataNascimentoString() {
         SimpleDateFormat formatter = new SimpleDateFormat("dd/MM/yyyy");
